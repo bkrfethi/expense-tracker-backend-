@@ -45,16 +45,17 @@ const forgotPassword = async (req, res, next) => {
   if (!user) {
      return res.status(404).json({ message: 'User not found' });
   }
-  console.log(user)
+ 
   const OTP = generateOTP();
+  const OTPCreatedAt = new Date();
   try {
-    console.log(user.email)
-
-    console.log("dqsdsqd")
     // Store the OTP and its creation timestamp in the user object (you might want to store it in the database)
-    user.OTP = OTP;
+    user.OTP = {
+      code: OTP,
+      createdAt: OTPCreatedAt
+    };
+
     sendTemplateEmail(user.email,"OTP EMAIL","otp",{OTP} );
-    console.log("send")
     await user.save();
     res.status(200).json({ message: 'OTP sent successfully' });
     next()
@@ -64,31 +65,43 @@ const forgotPassword = async (req, res, next) => {
   }
 };
 
-// Reset password - Verify OTP and update password
-const resetPassword = async (req, res, next) => {
-  const { email, otp, newPassword } = req.body;
+
+const verifyOTP = async (req, res, next) => {
+  const { email, otp } = req.body;
   const user = await Users.findOne({ email });
 
-  if (!user || !user.otp || user.otp.otp !== otp) {
+  if (!user || !user.OTP || user.OTP.code !== otp) {
     return res.status(400).json({ message: 'Invalid OTP' });
   }
 
   // Check if OTP has expired (e.g., 5 minutes expiration)
   const otpExpiration = 5 * 60 * 1000; // 5 minutes in milliseconds
-  if (Date.now() - user.otp.createdAt > otpExpiration) {
+  if (!user.OTP.createdAt || Date.now() - user.OTP.createdAt > otpExpiration) {
     return res.status(400).json({ message: 'OTP has expired' });
   }
 
-  // Hash the new password
-  const hashedPassword = bcrypt.hashSync(newPassword, 10);
+  res.status(200).json({ message: 'OTP verified successfully' });
+};
 
-  // Update user's password (you might want to update it in the database)
-  user.password = hashedPassword;
 
-  // Remove OTP from user object after successful password reset
-  delete user.otp;
+const resetPassword = async (req, res, next) => {
+  const { email, newPassword } = req.body;
+  const user = await Users.findOne({ email });
+
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
 
   try {
+    // Hash the new password
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+
+    // Update user's password (you might want to update it in the database)
+    user.password = hashedPassword;
+
+    // Remove OTP from user object after successful password reset
+    delete user.OTP;
+
     await user.save();
     res.status(200).json({ message: 'Password reset successful' });
   } catch (error) {
@@ -97,4 +110,4 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-module.exports = { forgotPassword, resetPassword };
+module.exports = { forgotPassword, verifyOTP, resetPassword };

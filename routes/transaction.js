@@ -2,7 +2,7 @@ const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const userAuth = require("../middlewares/authMiddleware.js");
 
-
+const Balance = require('../models/balance');
 // IP rate limit
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -18,7 +18,11 @@ const {addIncome,
       getAllIncome,
       getAllExpenses,
       setwallet,
-      getTotaleBlance
+      getTotaleBlance,
+      getIncomeCategories,
+      getExpenseCategories,
+      addCategory,
+      getAllCategories
      }=require('../controllers/Transaction.js')
 const router = express.Router();
 
@@ -32,4 +36,12 @@ router.put('/update_transaction/:id', userAuth,updateTransaction);
 router.get('/transactions',userAuth, getAllTransactions);
 router.get('/getAllIncome',userAuth, getAllIncome);
 router.get('/getAllExpenses',userAuth, getAllExpenses);
+
+router.get('/getAllCategories',userAuth, getAllCategories);
+
+router.get('/income-categories',userAuth, getIncomeCategories);
+router.get('/expense-categories',userAuth, getExpenseCategories);
+router.post('/addCategory',userAuth,addCategory)
+
+
 module.exports=router

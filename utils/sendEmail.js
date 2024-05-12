@@ -1,11 +1,7 @@
 const path = require("path"); 
 const transporter = require("./email");
-
-
-
-
 async function sendTemplateEmail(email, subject ,template, context) {
-  console.log(email, subject, context)
+  
 try {
   let mailOptions = {
     from: process.env.email,
@@ -15,7 +11,7 @@ try {
     context
   };
 
-  console.log("qfter mailOp")
+ 
   transporter.sendMail(mailOptions, async function (error, info) {
     if (error) {
         console.log("test")

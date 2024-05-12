@@ -2,7 +2,7 @@ const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const userAuth = require("../middlewares/authMiddleware.js");
 const { register, login} = require("../controllers/authController.js");
-const { forgotPassword, resetPassword }=require('../controllers/send.js')
+const { forgotPassword,verifyOTP, resetPassword }=require('../controllers/passwordController.js')
 // IP rate limit
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -18,10 +18,9 @@ router.post("/register", limiter, register);
 router.post("/login", limiter, login);
 
 
-
+//Forgot password
 router.post('/forgot-password', forgotPassword);
-
-// Reset password route
-//router.post('/reset-password', resetPassword);
+router.post('/verifyOTP', verifyOTP);
+router.post('/reset-password', resetPassword);
 
 module.exports = router;

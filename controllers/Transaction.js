@@ -10,19 +10,20 @@ const setwallet=async (req,res)=>{
         const amount = req.body.amount; // Amount entered by the user
 
         // Find the balance document for the user
-        let balance = await Balance.findOne({ user: userId });
+        let userBalance = await Balance.findOne({ user: userId });
 
         // If balance document doesn't exist, create it
-        if (!balance) {
-            balance = new Balance({
+        if (!userBalance) {
+            userBalance = new Balance({
                 user: userId,
-                amount: 0, // Initialize the amount to 0
-                wallet: [] // Initialize the wallet array
+                amount: 0,
+                wallet: []
             });
         }
 
+
         // Set the wallet amount using the setWallet method
-        await balance.setWallet(amount);
+        await userBalance.setWallet(amount);
 
         // Send success response
         res.status(200).json({ message: 'Wallet amount set successfully' });
@@ -73,6 +74,16 @@ const addIncome = async (req, res, next) => {
                 wallet: []
             });
         }
+             // Check if the category already exists in user's balance
+             const existingCategory = userBalance.categories.find(cat => cat.name === category);
+
+             if (existingCategory) {
+                 // Increment the amount of the existing category
+                 existingCategory.amount += amount;
+             } else {
+                 // Return an error if the category doesn't exist
+                 return res.status(400).json({ success: false, message: 'Category not found' });
+             }
 
         const income = new Income({
             amount: amount,
@@ -100,6 +111,7 @@ const addIncome = async (req, res, next) => {
     }
 };
 
+
 const addExpense = async (req, res, next) => {
     try {
         const { name, amount, category, date } = req.body;
@@ -119,6 +131,17 @@ const addExpense = async (req, res, next) => {
                 wallet: []
             });
         }
+        // Find the category within the user's balance
+        const expenseCategory = userBalance.categories.find(cat => cat.name === category);
+
+        // If the category exists, increment its amount by the expense amount
+        if (expenseCategory) {
+            expenseCategory.amount += amount;
+        } else {
+            // If the category doesn't exist, return an error
+            return res.status(400).json({ message: 'Expense category not found' });
+        }
+
 
         // Create a new Expense instance
         const expense = new Expense({
@@ -172,10 +195,10 @@ const deleteTransaction = async (req, res, next) => {
             deletedTransaction = await Expense.findByIdAndDelete(transactionId);
         }
 
-        /* if (!deletedTransaction) {
+        if (!deletedTransaction) {
              return res.status(404).json({ message: `${type.charAt(0).toUpperCase() + type.slice(1)} not found` });
          }
- */
+ 
         // Retrieve the user's balance and update it
         const userId = req.body.user.userId;
         let userBalance = await Balance.findOne({ user: userId });
@@ -189,13 +212,25 @@ const deleteTransaction = async (req, res, next) => {
         // Update the balance based on the type of transaction
         if (type === 'income') {
             userBalance.amount -= deletedTransaction.amount;
+
+            // Decrement the amount of the specific category
+            const categoryIndex = userBalance.categories.findIndex(cat => cat.name === deletedTransaction.category);
+            if (categoryIndex !== -1) {
+                userBalance.categories[categoryIndex].amount -= deletedTransaction.amount;
+            }
         } else {
             userBalance.amount += deletedTransaction.amount;
+
+            // Decrement the amount of the specific category
+            const categoryIndex = userBalance.categories.findIndex(cat => cat.name === deletedTransaction.category);
+            if (categoryIndex !== -1) {
+                userBalance.categories[categoryIndex].amount -= deletedTransaction.amount;
+            }
         }
 
         // Save the updated balance
         await userBalance.save();
-
+        
         // Respond with success message
         res.status(200).json({
             success: true,
@@ -207,6 +242,7 @@ const deleteTransaction = async (req, res, next) => {
         res.status(500).json({ message: 'Failed to delete transaction' });
     }
 };
+
 
 const updateTransaction = async (req, res, next) => {
     try {
@@ -230,9 +266,9 @@ const updateTransaction = async (req, res, next) => {
         }
 
         // Check if the user is authorized to update the transaction
-        if (transaction.user.toString() !== userId) {
+        /* if (transaction.user.toString() !== userId) {
             return res.status(403).json({ message: 'Unauthorized' });
-        }
+        }*/
 
         // Calculate the amount difference based on the new and old amounts
         let amountDifference = 0;
@@ -240,23 +276,23 @@ const updateTransaction = async (req, res, next) => {
             amountDifference = amount - transaction.amount;
         } else {
             amountDifference = transaction.amount - amount;
-        
         }
 
         // Update the user's balance
         let userBalance = await Balance.findOne({ user: userId });
         if (!userBalance) {
-            userBalance = new Balance({
-                user: userId,
-                amount: 0,
-                wallet: []
-            });
+            return res.status(400).json('No wallet found. Please set up a wallet.');
         }
-        if (type === 'income') {
-            userBalance.amount += amountDifference;
-        } else {
-            userBalance.amount -= amountDifference;
+
+        // Check if the category exists in the user's balance
+        const categoryIndex = userBalance.categories.findIndex(cat => cat.name === category);
+        if (categoryIndex === -1) {
+            return res.status(404).json({ message: 'Category not found in the user\'s balance' });
         }
+
+        // Update the balance of the category
+        userBalance.categories[categoryIndex].amount += (type === 'income') ? amountDifference : -amountDifference;
+
         await userBalance.save();
 
         // Update the transaction with the new values
@@ -267,6 +303,8 @@ const updateTransaction = async (req, res, next) => {
 
         // Save the updated transaction
         const updatedTransaction = await transaction.save();
+
+        // Update the wallet entry if exists
         const walletEntryIndex = userBalance.wallet.findIndex(entry => entry._id.equals(transactionId));
         if (walletEntryIndex !== -1) {
             userBalance.wallet[walletEntryIndex].name = name || userBalance.wallet[walletEntryIndex].name;
@@ -364,9 +402,59 @@ const getAllExpenses = async (req, res, next) => {
 };
 
 
+const getIncomeCategories=async (req,res)=>{
+    try {
+        const userId = req.body.user.userId;
+  
+        const incomeCategories = await Balance.getIncomeCategories(userId);
+        res.status(200).json(incomeCategories);
+    } catch (error) {
+        console.error('Error retrieving income categories:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+const getExpenseCategories =async (req,res)=>{
+    try {
+        const userId = req.body.user.userId;
+  
+        const expenseCategories = await Balance.getExpenseCategories(userId);
+        res.status(200).json(expenseCategories);
+    } catch (error) {
+        console.error('Error retrieving expense categories:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
 
+const addCategory= async (req,res)=>{
+    try {
+        const userId = req.body.user.userId; // Assuming userId is sent in the request body
+        const categoryData = req.body; // Assuming category data is sent in the request body
 
+        // Call the static method to add the category
+        const categories = await Balance.addCategory(userId, categoryData);
 
+        res.status(200).json(categories); // Return the updated list of categories
+    } catch (error) {
+        console.error('Error adding category:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
+const getAllCategories =async (req, res) => {
+    try {
+      const userId = req.body.user.userId;
+  
+        // Call the static method to retrieve all categories for the user
+        const categories = await Balance.getAllCategories({ user: userId });
+  
+        // Return the categories in the response
+        res.status(200).json(categories);
+    } catch (error) {
+        // Handle errors and send an error response
+        console.error('Error retrieving categories:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
 
 
 
@@ -382,5 +470,9 @@ module.exports = {
     getAllIncome,
     getAllExpenses,
     setwallet,
-    getTotaleBlance
+    getTotaleBlance,
+    getIncomeCategories,
+    getExpenseCategories,
+    addCategory,
+    getAllCategories
 }
