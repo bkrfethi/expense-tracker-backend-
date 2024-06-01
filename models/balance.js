@@ -8,6 +8,7 @@ const BalanceSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now },
     wallet: [{
         type: { type: String, required: true },
+        name: { type: String },
         amount: Number,
         date: Date,
         category: { type: String, required: true },

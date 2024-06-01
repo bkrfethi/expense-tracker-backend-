@@ -1,24 +1,29 @@
 const Users=require('../models/User');
 
-const register=async (req,res,next)=>{
-    const { firstName, lastName, email, password ,confirmPassword } = req.body;
-    if (!firstName || !lastName || !email  && password === confirmPassword && password.length >= 4) {
+const register = async (req, res, next) => {
+    const { firstName, lastName, email, password, confirmPassword, gender, dateOfBirth } = req.body;
+    
+    // Check if all required fields are provided and password meets criteria
+    if (!firstName || !lastName || !email || !gender || !dateOfBirth || password !== confirmPassword || password.length < 4) {
         return next('Invalid data provided');
-        
     }
+
     try {
         const userExist = await Users.findOne({ email });
-        if(userExist){
-            return next('Email Address already exists. Try Login')
+        if (userExist) {
+            return next('Email Address already exists. Try Login');
         }
-        const user=await Users.create({
+
+        const user = await Users.create({
             firstName,
             lastName,
             email,
             password,
-            
-        })
-        const token=user.createJWT()
+            gender,
+            dateOfBirth,
+        });
+
+        const token = user.createJWT();
         res.status(201).send({
             success: true,
             message: "Account created successfully",
@@ -27,16 +32,18 @@ const register=async (req,res,next)=>{
                 firstName: user.firstName,
                 lastName: user.lastName,
                 email: user.email,
+                gender: user.gender,
+                dateOfBirth: user.dateOfBirth,
             },
             token,
-        })
+        });
 
     } catch (error) {
         console.log(error);
         res.status(404).json({ message: error.message });
     }
-   
-}
+};
+
 
 
 const login = async (req, res, next) => {

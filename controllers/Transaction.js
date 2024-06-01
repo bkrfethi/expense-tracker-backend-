@@ -467,6 +467,7 @@ module.exports = {
     deleteTransaction,
     updateTransaction,
     getAllTransactions,
+    
     getAllIncome,
     getAllExpenses,
     setwallet,
