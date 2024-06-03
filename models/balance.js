@@ -18,8 +18,12 @@ const BalanceSchema = new mongoose.Schema({
         type: { type: String, enum: ['income', 'expense'], required: true },
         amount: { type: Number, default: 0 }
         // You can add more properties to the category schema if needed
-    }]
-    
+    }],
+    saving: {
+        targetAmount: { type: Number, default: 0 },
+        currentAmount: { type: Number, default: 0 },
+        date: { type: Date, default: Date.now },
+    }
 });
 
 BalanceSchema.statics.getAllCategories = async function() {
