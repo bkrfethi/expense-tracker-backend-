@@ -4,13 +4,16 @@ const Balance = require('../models/balance');
 const Goal=require('../models/Goals');
 const balance = require('../models/balance');
 
+
+
 const Create_Goal = async (req, res) => {
     try {
         const userId = req.body.user.userId;
-        const { name, description, targetAmount/*,image*/} = req.body;
+        const { name, description, targetAmount, image } = req.body;
 
-        if (!(name && targetAmount)) {
-            return res.status(400).json({ success: false, message: 'Name and targetAmount are required fields' });
+        // Validate required fields and ensure targetAmount is positive
+        if (!name || targetAmount === undefined || targetAmount <= 0) {
+            return res.status(400).json({ success: false, message: 'Name and a positive targetAmount are required fields' });
         }
 
         // Create a new Goal instance
@@ -19,7 +22,7 @@ const Create_Goal = async (req, res) => {
             name: name,
             description: description,
             targetAmount: targetAmount,
-           // image: image
+            image: image
         });
 
         // Save the new goal to the database
@@ -34,6 +37,7 @@ const Create_Goal = async (req, res) => {
                 name: savedGoal.name,
                 description: savedGoal.description,
                 targetAmount: savedGoal.targetAmount,
+                image: savedGoal.image
                 // You can include other fields here if needed
             }
         });
@@ -42,6 +46,8 @@ const Create_Goal = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to create goal' });
     }
 };
+
+
 
 const delete_Goals = async (req, res) => {
     try {
@@ -96,7 +102,9 @@ const deposit = async (req, res) => {
     try {
         const goalId = req.params.id;
         const amount = req.body.amount; // Assuming amount is sent in the request body
-
+        if (amount <= 0 || amount === undefined) {
+            return res.status(400).json({ success: false, message: 'Enter a valid amount' });
+        }
         // Find the goal by ID
         const goal = await Goal.findById(goalId);
         if (!goal) {
@@ -117,6 +125,10 @@ const deposit = async (req, res) => {
         const userBalance = await Balance.findOne({ user: userId });
         if (!userBalance) {
             return res.status(404).json({ success: false, message: 'User balance not found' });
+        }
+        // Check if the user has enough balance
+        if (userBalance.amount < amount) {
+            return res.status(400).json({ success: false, message: 'Insufficient balance' });
         }
 
         // Deduct the amount from the user's balance

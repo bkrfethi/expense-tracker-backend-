@@ -19,6 +19,7 @@ const BalanceSchema = new mongoose.Schema({
         amount: { type: Number, default: 0 }
         // You can add more properties to the category schema if needed
     }]
+    
 });
 
 BalanceSchema.statics.getAllCategories = async function() {

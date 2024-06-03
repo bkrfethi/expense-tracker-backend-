@@ -3,20 +3,20 @@ const GroupSchema = new mongoose.Schema({
     admin: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }],
     name: { type: String, required: true },
-    description: String, // Removed unnecessary object wrapping
+    image: { type: String, required: true },
     Transaction: [{
-        type: { type: String, required: true },
+        name: { type: String, required: true },
         amount: Number,
         date: Date,
         category: { type: String, required: true },
     }],
     Goals: [{
-        targetAmount: { type: Number, required: true },
-        currentAmount: { type: Number, default: 0 },
-        category: { type: String, required: true },
-        Description: String, // Changed 'type:string' to 'String'
-    }], // Added a comma to separate the array from the next property
-    InviteLink: { type: mongoose.Schema.Types.ObjectId, ref: 'link', required: true } // Added a comma to separate the properties
+        name: { type: String, required: true },
+        description: { type: String },
+        targetAmount: { type: Number, required: true }, // Total target amount for the goal
+        currentAmount: { type: Number, default: 0 }, // Current amount saved for the goal
+        image: { type: String }
+    }]
 });
 
-module.exports = mongoose.model('Group', GroupSchema); // Changed 'group' to 'Group' to follow naming conventions
+module.exports = mongoose.model('Group', GroupSchema); 

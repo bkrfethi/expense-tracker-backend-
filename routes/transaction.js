@@ -41,6 +41,7 @@ router.get('/getAllCategories',userAuth, getAllCategories);
 
 router.get('/income-categories',userAuth, getIncomeCategories);
 router.get('/expense-categories',userAuth, getExpenseCategories);
+
 router.post('/addCategory',userAuth,addCategory)
 
 

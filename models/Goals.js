@@ -10,7 +10,7 @@ const GoalSchema = new mongoose.Schema({
         amount: { type: Number, required: true },
         date: { type: Date, default: Date.now }
     }],
-    image: { type: String } 
+    image: { type: String }
     
 });
 
