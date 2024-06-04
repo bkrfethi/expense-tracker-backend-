@@ -96,77 +96,66 @@ const joinGroupFromID = async (req, res) => {
     }
 };
 
-
-/*
-const deleteMemberFromGroup = async (req, res) => {
-    const { adminId, groupId, memberId } = req.body;
+const removeMemberFromGroup = async (req, res) => {
+    const userId = req.body.user.userId;
+    const { groupId, memberId } = req.body; // memberId is the ID of the member to be removed
 
     try {
-        // Check if the admin user exists
-        const adminUser = await User.findById(adminId);
-        if (!adminUser) {
-            return res.status(404).json('Admin user does not exist');
+        // Check if the user exists
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User does not exist' });
         }
 
         // Check if the group exists
         const group = await Group.findById(groupId);
         if (!group) {
-            return res.status(404).json('Group does not exist');
+            return res.status(404).json({ success: false, message: 'Group does not exist' });
         }
 
-        // Check if the requesting user is the admin of the group
-        if (group.admin.toString() !== adminId) {
-            return res.status(403).json('Only the admin can remove members from the group');
+        // Check if the user is the admin of the group
+        if (group.admin.toString() !== userId) {
+            return res.status(403).json({ success: false, message: 'Only the admin can remove members' });
         }
 
         // Check if the member to be removed exists in the group
         const memberIndex = group.members.indexOf(memberId);
         if (memberIndex === -1) {
-            return res.status(404).json('Member not found in the group');
+            return res.status(404).json({ success: false, message: 'Member not found in the group' });
         }
 
-        // Remove the member from the group's members array
+        // Remove the member from the group
         group.members.splice(memberIndex, 1);
-
-        // Save the updated group
         await group.save();
 
-        return res.status(200).json('Member removed successfully');
+        return res.status(200).json({ success: true, message: 'Member successfully removed from the group' });
     } catch (error) {
         console.error('Error removing member from group:', error);
-        return res.status(500).json('An error occurred while removing the member from the group');
+        return res.status(500).json({ success: false, message: 'An error occurred while removing the member from the group' });
     }
 };
-*/
-
-const addTransaction = async (req, res) => {
-    const { groupId, transaction } = req.body;
+const getallmembers = async (req, res) => {
+    const groupId = req.params.groupId;
 
     try {
-        // Check if the group exists
         const group = await Group.findById(groupId);
         if (!group) {
-            return res.status(404).json('Group does not exist');
+            return res.status(404).json({ success: false, message: 'Group not found', members: [] });
         }
 
-        // Validate the transaction fields
-        const { name, amount, date, category } = transaction;
-        if (!name || !category ||amount <0) {
-            return res.status(400).json('Transaction name and category are required');
-        }
+        // Extract the members from the group
+        const members = group.members;
 
-        // Add the new transaction to the group's Transaction array
-        group.Transaction.push({ name, amount, date, category });
-
-        // Save the updated group
-        await group.save();
-
-        return res.status(200).json({ message: 'Transaction added successfully', group });
+        return res.status(200).json({ success: true, message: 'Members found for the group', members: members });
     } catch (error) {
-        console.error('Error adding transaction to group:', error);
-        return res.status(500).json('An error occurred while adding the transaction to the group');
+        console.error('Error fetching members for group:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
+
+
+
+
 
 
 
@@ -323,6 +312,73 @@ const editGoal = async (req, res) => {
 
 
 
+const addTransaction = async (req, res) => {
+    try {
+        const userId = req.body.user.userId;
+        const { groupId, name, participants, category } = req.body;
+
+        // Validate the transaction fields
+        if (!name || !participants || !category || participants.length === 0) {
+            return res.status(400).json({ success: false, message: 'Invalid transaction details' });
+        }
+
+        // Find the group by ID
+        const group = await Group.findById(groupId);
+        if (!group) {
+            return res.status(404).json({ success: false, message: 'Group not found' });
+        }
+
+        // Check if all participants are members of the group
+        const allParticipantsAreMembers = participants.every(participant => 
+            group.members.includes(participant.user)
+        );
+        if (!allParticipantsAreMembers) {
+            return res.status(403).json({ success: false, message: 'All participants must be members of the group' });
+        }
+
+        // Create the new transaction
+        const newTransaction = {
+            name,
+            participants,
+            category,
+            date: Date.now()
+        };
+
+        // Add the new transaction to the group's Transaction array
+        group.Transaction.push(newTransaction);
+
+        // Save the updated group
+        await group.save();
+
+        // Send success response with the updated group
+        res.status(201).json({ success: true, message: 'Transaction added successfully', transaction: newTransaction });
+    } catch (error) {
+        console.error('Error adding transaction:', error);
+        res.status(500).json({ success: false, message: 'Failed to add transaction' });
+    }
+};
+
+
+const getAllTransactions = async (req, res) => {
+    try {
+        const groupId = req.params.groupId;
+
+        // Find the group by ID
+        const group = await Group.findById(groupId);
+        if (!group) {
+            return res.status(404).json({ success: false, message: 'Group not found', transactions: [] });
+        }
+
+        // Extract the transactions from the group
+        const transactions = group.Transaction;
+
+        // Send success response with the transactions
+        return res.status(200).json({ success: true, message: 'Transactions found for the group', transactions });
+    } catch (error) {
+        console.error('Error fetching transactions for group:', error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch transactions for group', error: error.message });
+    }
+};
 
 
 
@@ -357,7 +413,13 @@ module.exports ={
     createGroup ,
     getAllGroups,
     joinGroupFromID,
+    removeMemberFromGroup,
+    getallmembers,
     addGoalGroup,
     depositGoal,
-    getAllGoalsOfGroup
+    getAllGoalsOfGroup,
+
+
+    addTransaction,
+    getAllTransactions
 }

@@ -19,6 +19,7 @@ const getProfile= async (req,res)=>{
                 email: user.email,
                 dateOfBirth: user.dateOfBirth,
                 gender: user.gender,
+                image:user.image
             }
         });
     } catch (error) {
@@ -29,7 +30,7 @@ const getProfile= async (req,res)=>{
 }
 
 const editProfile = async (req, res) => {
-    const {firstName, lastName, email, gender, dateOfBirth } = req.body;
+    const {firstName, lastName, email, gender, dateOfBirth,image } = req.body;
 
     // Validate input
     if ( !firstName || !lastName || !email || !gender || !dateOfBirth) {
@@ -47,7 +48,8 @@ const editProfile = async (req, res) => {
                 lastName,
                 email,
                 gender,
-                dateOfBirth
+                dateOfBirth,
+                image
             },
             { new: true, runValidators: true } // Return the updated document and run schema validators
         );
@@ -66,7 +68,8 @@ const editProfile = async (req, res) => {
                 lastName: user.lastName,
                 email: user.email,
                 gender: user.gender,
-                dateOfBirth: user.dateOfBirth
+                dateOfBirth: user.dateOfBirth,
+                iamge:user.image
             }
         });
     } catch (error) {

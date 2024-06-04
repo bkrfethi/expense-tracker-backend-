@@ -13,7 +13,10 @@ const userSchema=new mongoose.Schema({
     OTP: {
         code: { type: String },
         createdAt: { type: Date, default: Date.now }
-    }
+    },
+    image: { type: String }
+
+    
 })
 
 userSchema.pre('save',async function(){
